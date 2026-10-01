@@ -69,7 +69,7 @@ The deploy workflow reads scoped Infisical paths:
 ```text
 /Hetzner-Server/global     host access and shared deploy secrets
 /Hetzner-Server/core       core stack runtime secrets
-/Hetzner-Server/llm        LiteLLM and Langfuse runtime secrets
+/Hetzner-Server/llm        LiteLLM runtime secrets
 /Hetzner-Server/api-keys   provider API keys named KEY_*
 ```
 
@@ -119,7 +119,6 @@ loki
 prometheus
 llm-postgres
 litellm
-langfuse
 wiki
 wiki-database
 ```
@@ -128,12 +127,12 @@ LLM service endpoints:
 
 ```text
 LiteLLM    http://litellm.victus.io
-Langfuse   http://langfuse.victus.io
+Phoenix    http://phoenix.victus.io
 Postgres   internal Docker network only
 ```
 
-The `llm` deploy does not publish LiteLLM or Langfuse service ports directly.
-Private NGINX binds to `TAILSCALE_IPV4` and proxies to the services over
+The `llm` deploy does not publish LiteLLM ports directly. Private NGINX binds
+to `TAILSCALE_IPV4` and proxies LiteLLM and Phoenix over
 `infra_shared_backend`.
 
 Wiki.js is published through `nginx-public` and proxies to `wiki:3000` over
@@ -151,10 +150,6 @@ If `nginx-private` also binds port `80`, `sync-core-dns.sh` derives
 `NGINX_PUBLIC_BIND_IP` from the VPS public route so public and private NGINX do
 not compete for the same host socket. Override `NGINX_PUBLIC_BIND_IP` in
 `CORE_RUNTIME_ENV` only when the host has multiple public IPv4 addresses.
-
-After the first Langfuse login, create a Langfuse project, generate API keys,
-update `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` in Infisical, and
-rerun the deployment.
 
 ## LiteLLM Runtime Deployments
 
@@ -196,8 +191,8 @@ curl http://litellm.victus.io/v1/models \
   -H "Authorization: Bearer <LITELLM_VIRTUAL_KEY>"
 ```
 
-For request traces, inspect the Langfuse project linked by
-`LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY`.
+For request traces, connect through Tailscale and inspect
+`http://phoenix.victus.io`.
 
 Manual inspection:
 

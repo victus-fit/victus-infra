@@ -9,5 +9,3 @@ services:
       - /srv/secrets/runtime/llm.env
     volumes:
       - /srv/apps/llm/litellm/config.yaml:/app/config.yaml:ro
-
-  langfuse:

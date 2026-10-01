@@ -66,10 +66,10 @@ networking:
       https:
         enabled: false
 
-    - name: langfuse
+    - name: phoenix
       domains:
-        - langfuse.victus.io
-      upstream: langfuse:3000
+        - phoenix.victus.io
+      upstream: phoenix:6006
       exposure: private
       access_policy: private
       preserve_host: true
@@ -83,6 +83,19 @@ networking:
       domains:
         - wiki.victus.fit
       upstream: wiki:3000
+      exposure: public
+      access_policy: public
+      preserve_host: true
+      http:
+        enabled: true
+        redirect_to_https: true
+      https:
+        enabled: true
+
+    - name: victus-app
+      domains:
+        - app.victus.fit
+      upstream: frontend:5173
       exposure: public
       access_policy: public
       preserve_host: true

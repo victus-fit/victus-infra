@@ -144,7 +144,7 @@
 
 - name: Deploy the llm stack
   ansible.builtin.command:
-    cmd: docker compose --env-file {{ deploy_stack.env_path }} {{ deploy_llm_compose_args }} up -d
+    cmd: docker compose --env-file {{ deploy_stack.env_path }} {{ deploy_llm_compose_args }} up -d --remove-orphans
   register: deploy_llm_up
   changed_when: >-
     'Started' in deploy_llm_up.stdout or

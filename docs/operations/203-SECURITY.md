@@ -21,8 +21,8 @@ files, and pre-push checks.
 - GitHub repository variables are only for non-sensitive values.
 - Docker socket access is high privilege.
 - Internal services should not publish unnecessary ports.
-- LiteLLM and Langfuse are not published directly in production; access goes
-  through private NGINX on the Tailscale interface.
+- LiteLLM and Phoenix are not published directly on the public interface;
+  access goes through private NGINX on the Tailscale interface.
 
 ## Infisical Layout
 
@@ -51,12 +51,6 @@ listed; only move them into the scoped folders.
   LITELLM_SALT_KEY
   LITELLM_UI_PASSWORD
   LITELLM_DEPLOYMENTS_JSON
-  LANGFUSE_DB_PASSWORD
-  LANGFUSE_NEXTAUTH_SECRET
-  LANGFUSE_SALT
-  LANGFUSE_ENCRYPTION_KEY
-  LANGFUSE_PUBLIC_KEY
-  LANGFUSE_SECRET_KEY
 
 /Hetzner-Server/api-keys
   KEY_*
@@ -83,12 +77,6 @@ LITELLM_MASTER_KEY
 LITELLM_SALT_KEY
 LITELLM_UI_PASSWORD
 LITELLM_DEPLOYMENTS_JSON
-LANGFUSE_DB_PASSWORD
-LANGFUSE_NEXTAUTH_SECRET
-LANGFUSE_SALT
-LANGFUSE_ENCRYPTION_KEY
-LANGFUSE_PUBLIC_KEY
-LANGFUSE_SECRET_KEY
 ```
 
 LiteLLM provider keys must be stored in Infisical with the `KEY_` prefix:

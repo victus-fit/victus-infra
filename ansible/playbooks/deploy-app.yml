@@ -1,0 +1,18 @@
+---
+- name: Deploy Victus application stack
+  hosts: all
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Load inventory group vars fragments
+      ansible.builtin.include_vars:
+        dir: "{{ playbook_dir }}/../inventories/production/group_vars"
+        extensions:
+          - yml
+
+  vars:
+    deploy_stack: "{{ deploy.app }}"
+
+  roles:
+    - role: deploy/app

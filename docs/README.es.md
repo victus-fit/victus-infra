@@ -30,7 +30,7 @@ Stacks:
 ```text
 core            nginx, seaweedfs, pipeline-postgres, redis, etcd, coredns
 observability   prometheus, loki
-llm             LiteLLM, Langfuse, Postgres
+llm             LiteLLM, Postgres
 wiki            Wiki.js, Postgres, documentación administrada desde el navegador
 ```
 

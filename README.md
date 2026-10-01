@@ -2,7 +2,7 @@
 
 Reproducible infrastructure for the private Victus runtime.
 
-This repository does not contain the application. It provides the shared runtime used by other Victus repositories:
+This repository does not contain application source code. It provides the shared runtime and deploys released Victus application images:
 
 - object storage and artifacts in SeaweedFS S3
 - durable paper state in Postgres
@@ -30,8 +30,9 @@ Stacks:
 ```text
 core            nginx, seaweedfs, pipeline-postgres, redis, etcd, coredns
 observability   grafana, prometheus, loki
-llm             LiteLLM, Langfuse, Postgres
+llm             LiteLLM, Postgres
 wiki            Wiki.js, Postgres, browser-managed documentation
+app             Victus web app, agent, RAG, Qdrant, Phoenix, two Postgres services
 ```
 
 ## Local Use

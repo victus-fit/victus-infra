@@ -13,6 +13,7 @@ bash "$ROOT_DIR/tests/ansible/deploy-syntax-check.sh"
 bash "$ROOT_DIR/tests/ansible/deploy-observability-syntax-check.sh"
 bash "$ROOT_DIR/tests/ansible/deploy-llm-syntax-check.sh"
 bash "$ROOT_DIR/tests/ansible/deploy-wiki-syntax-check.sh"
+bash "$ROOT_DIR/tests/ansible/deploy-app-syntax-check.sh"
 bash "$ROOT_DIR/tests/ansible/preflight-syntax-check.sh"
 bash "$ROOT_DIR/tests/ansible/review-syntax-check.sh"
 

@@ -19,6 +19,7 @@ env:
   INFISICAL_GLOBAL_SECRET_PATH: /Hetzner-Server/global
   INFISICAL_CORE_SECRET_PATH: /Hetzner-Server/core
   INFISICAL_LLM_SECRET_PATH: /Hetzner-Server/llm
+  INFISICAL_APP_SECRET_PATH: /Hetzner-Server/app
   INFISICAL_API_KEYS_SECRET_PATH: /Hetzner-Server/api-keys
 
 jobs:
@@ -53,6 +54,7 @@ jobs:
           bash tests/ansible/deploy-observability-syntax-check.sh
           bash tests/ansible/deploy-llm-syntax-check.sh
           bash tests/ansible/deploy-wiki-syntax-check.sh
+          bash tests/ansible/deploy-app-syntax-check.sh
           bash tests/ansible/preflight-syntax-check.sh
           bash tests/ansible/review-syntax-check.sh
 
@@ -99,6 +101,15 @@ jobs:
           env-slug: "${{ vars.INFISICAL_ENV_SLUG }}"
           secret-path: "${{ env.INFISICAL_LLM_SECRET_PATH }}"
 
+      - name: Pull application secrets from Infisical
+        uses: Infisical/secrets-action@v1.0.10
+        with:
+          method: "oidc"
+          identity-id: "${{ vars.INFISICAL_DEPLOY_ID }}"
+          project-slug: "${{ vars.INFISICAL_PROJECT_SLUG }}"
+          env-slug: "${{ vars.INFISICAL_ENV_SLUG }}"
+          secret-path: "${{ env.INFISICAL_APP_SECRET_PATH }}"
+
       - name: Pull API keys from Infisical
         uses: Infisical/secrets-action@v1.0.10
         with:
@@ -123,12 +134,7 @@ jobs:
           LITELLM_SALT_KEY: ${{ env.LITELLM_SALT_KEY }}
           LITELLM_UI_PASSWORD: ${{ env.LITELLM_UI_PASSWORD }}
           LITELLM_DEPLOYMENTS_JSON: ${{ env.LITELLM_DEPLOYMENTS_JSON }}
-          LANGFUSE_DB_PASSWORD: ${{ env.LANGFUSE_DB_PASSWORD }}
-          LANGFUSE_NEXTAUTH_SECRET: ${{ env.LANGFUSE_NEXTAUTH_SECRET }}
-          LANGFUSE_SALT: ${{ env.LANGFUSE_SALT }}
-          LANGFUSE_ENCRYPTION_KEY: ${{ env.LANGFUSE_ENCRYPTION_KEY }}
-          LANGFUSE_PUBLIC_KEY: ${{ env.LANGFUSE_PUBLIC_KEY }}
-          LANGFUSE_SECRET_KEY: ${{ env.LANGFUSE_SECRET_KEY }}
+          APP_RUNTIME_ENV: ${{ env.APP_RUNTIME_ENV }}
         run: |
           set -euo pipefail
           
@@ -161,15 +167,7 @@ jobs:
           [[ -n "${LITELLM_SALT_KEY}" ]] || errors+=("Missing LITELLM_SALT_KEY")
           [[ -n "${LITELLM_UI_PASSWORD}" ]] || errors+=("Missing LITELLM_UI_PASSWORD")
           [[ -n "${LITELLM_DEPLOYMENTS_JSON}" ]] || errors+=("Missing LITELLM_DEPLOYMENTS_JSON")
-          [[ -n "${LANGFUSE_DB_PASSWORD}" ]] || errors+=("Missing LANGFUSE_DB_PASSWORD")
-          [[ "${#LANGFUSE_DB_PASSWORD}" -ge 16 ]] || errors+=("LANGFUSE_DB_PASSWORD must be at least 16 characters")
-          [[ "${LANGFUSE_DB_PASSWORD}" != "change-me" ]] || errors+=("LANGFUSE_DB_PASSWORD must not use local default")
-          [[ -n "${LANGFUSE_NEXTAUTH_SECRET}" ]] || errors+=("Missing LANGFUSE_NEXTAUTH_SECRET")
-          [[ -n "${LANGFUSE_SALT}" ]] || errors+=("Missing LANGFUSE_SALT")
-          [[ -n "${LANGFUSE_ENCRYPTION_KEY}" ]] || errors+=("Missing LANGFUSE_ENCRYPTION_KEY")
-          [[ "${#LANGFUSE_ENCRYPTION_KEY}" -eq 64 ]] || errors+=("LANGFUSE_ENCRYPTION_KEY must be 64 hex characters")
-          [[ -n "${LANGFUSE_PUBLIC_KEY}" ]] || errors+=("Missing LANGFUSE_PUBLIC_KEY")
-          [[ -n "${LANGFUSE_SECRET_KEY}" ]] || errors+=("Missing LANGFUSE_SECRET_KEY")
+          [[ -n "${APP_RUNTIME_ENV}" ]] || errors+=("Missing APP_RUNTIME_ENV")
 
           if [[ ${#errors[@]} -gt 0 ]]; then
             printf '%s\n' "${errors[@]}" >&2
@@ -221,6 +219,15 @@ jobs:
           env-slug: "${{ vars.INFISICAL_ENV_SLUG }}"
           secret-path: "${{ env.INFISICAL_LLM_SECRET_PATH }}"
 
+      - name: Pull application secrets from Infisical
+        uses: Infisical/secrets-action@v1.0.10
+        with:
+          method: "oidc"
+          identity-id: "${{ vars.INFISICAL_DEPLOY_ID }}"
+          project-slug: "${{ vars.INFISICAL_PROJECT_SLUG }}"
+          env-slug: "${{ vars.INFISICAL_ENV_SLUG }}"
+          secret-path: "${{ env.INFISICAL_APP_SECRET_PATH }}"
+
       - name: Pull API keys from Infisical
         uses: Infisical/secrets-action@v1.0.10
         with:
@@ -268,12 +275,7 @@ jobs:
           LITELLM_SALT_KEY: ${{ env.LITELLM_SALT_KEY }}
           LITELLM_UI_PASSWORD: ${{ env.LITELLM_UI_PASSWORD }}
           LITELLM_DEPLOYMENTS_JSON: ${{ env.LITELLM_DEPLOYMENTS_JSON }}
-          LANGFUSE_DB_PASSWORD: ${{ env.LANGFUSE_DB_PASSWORD }}
-          LANGFUSE_NEXTAUTH_SECRET: ${{ env.LANGFUSE_NEXTAUTH_SECRET }}
-          LANGFUSE_SALT: ${{ env.LANGFUSE_SALT }}
-          LANGFUSE_ENCRYPTION_KEY: ${{ env.LANGFUSE_ENCRYPTION_KEY }}
-          LANGFUSE_PUBLIC_KEY: ${{ env.LANGFUSE_PUBLIC_KEY }}
-          LANGFUSE_SECRET_KEY: ${{ env.LANGFUSE_SECRET_KEY }}
+          APP_RUNTIME_ENV: ${{ env.APP_RUNTIME_ENV }}
         run: |
           set -euo pipefail
 
@@ -338,17 +340,6 @@ jobs:
             "LITELLM_UI_PASSWORD=${LITELLM_UI_PASSWORD}" \
             'LITELLM_WORKERS=2' \
             "LITELLM_DEPLOYMENTS_JSON=${litellm_deployments_json}" \
-            'LANGFUSE_DB=langfuse' \
-            'LANGFUSE_DB_USER=langfuse' \
-            "LANGFUSE_DB_PASSWORD=${LANGFUSE_DB_PASSWORD}" \
-            'LANGFUSE_NEXTAUTH_URL=http://langfuse.victus.io' \
-            "LANGFUSE_NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET}" \
-            "LANGFUSE_SALT=${LANGFUSE_SALT}" \
-            "LANGFUSE_ENCRYPTION_KEY=${LANGFUSE_ENCRYPTION_KEY}" \
-            'LANGFUSE_TELEMETRY_ENABLED=false' \
-            'LANGFUSE_HOST=http://langfuse:3000' \
-            "LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}" \
-            "LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}" \
             > /tmp/llm-runtime.env
           env | sort | while IFS='=' read -r name value; do
             case "$name" in
@@ -356,6 +347,9 @@ jobs:
             esac
           done
           chmod 600 /tmp/llm-runtime.env
+
+          printf '%s\n' "${APP_RUNTIME_ENV}" > /tmp/app-runtime.env
+          chmod 600 /tmp/app-runtime.env
 
       - name: Validate materialized runtime files
         run: |
@@ -365,6 +359,7 @@ jobs:
           [[ -f /tmp/core-runtime.env ]] || { echo "✗ Missing /tmp/core-runtime.env"; exit 1; }
           [[ -f /tmp/seaweed-s3.json ]] || { echo "✗ Missing /tmp/seaweed-s3.json"; exit 1; }
           [[ -f /tmp/llm-runtime.env ]] || { echo "✗ Missing /tmp/llm-runtime.env"; exit 1; }
+          [[ -f /tmp/app-runtime.env ]] || { echo "✗ Missing /tmp/app-runtime.env"; exit 1; }
 
           nginx_http_port="$(grep '^NGINX_HTTP_PORT=' /tmp/core-runtime.env | cut -d= -f2- || true)"
           [[ "${nginx_http_port}" == "80" ]] || { echo "✗ NGINX_HTTP_PORT must be 80"; exit 1; }
@@ -376,6 +371,7 @@ jobs:
           CORE_RUNTIME_ENV_SOURCE_FILE: /tmp/core-runtime.env
           CORE_RUNTIME_SEAWEED_S3_SOURCE_FILE: /tmp/seaweed-s3.json
           LLM_RUNTIME_ENV_SOURCE_FILE: /tmp/llm-runtime.env
+          APP_RUNTIME_ENV_SOURCE_FILE: /tmp/app-runtime.env
         run: |
           set -euo pipefail
 
@@ -384,6 +380,7 @@ jobs:
           ansible-playbook -i /tmp/deploy-hosts.yml playbooks/deploy.yml
           ansible-playbook -i /tmp/deploy-hosts.yml playbooks/deploy-llm.yml
           ansible-playbook -i /tmp/deploy-hosts.yml playbooks/deploy-wiki.yml
+          ansible-playbook -i /tmp/deploy-hosts.yml playbooks/deploy-app.yml
           ansible-playbook -i /tmp/deploy-hosts.yml playbooks/review.yml
 
   notify-success:
@@ -403,6 +400,7 @@ jobs:
           - core (nginx-private, nginx-public, SeaweedFS)
           - llm (LiteLLM, Langfuse)
           - wiki (Wiki.js and PostgreSQL)
+          - app (web app, agent, RAG, Qdrant, Phoenix)
           
           Next steps:
           1. Verify services at their configured ports

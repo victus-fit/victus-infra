@@ -1,0 +1,86 @@
+---
+- name: Derive application Compose CLI args
+  ansible.builtin.set_fact:
+    deploy_app_compose_args: >-
+      {{ '-f ' ~ (deploy_stack.compose_cli_files | join(' -f ')) }}
+
+- name: Ensure application deploy directories exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default('root') }}"
+    mode: "{{ item.mode }}"
+  loop: "{{ deploy_stack.directories }}"
+
+- name: Stage application runtime environment
+  ansible.builtin.copy:
+    src: "{{ lookup('ansible.builtin.env', 'APP_RUNTIME_ENV_SOURCE_FILE') }}"
+    dest: "{{ deploy_stack.env_path }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: lookup('ansible.builtin.env', 'APP_RUNTIME_ENV_SOURCE_FILE') | length > 0
+
+- name: Check application runtime environment exists
+  ansible.builtin.stat:
+    path: "{{ deploy_stack.env_path }}"
+  register: deploy_app_runtime_env
+
+- name: Stop application deploy when runtime environment is missing
+  ansible.builtin.assert:
+    that:
+      - deploy_app_runtime_env.stat.exists
+      - deploy_app_runtime_env.stat.isreg
+    fail_msg: "Missing application runtime environment: {{ deploy_stack.env_path }}"
+
+- name: Read application runtime environment
+  ansible.builtin.slurp:
+    path: "{{ deploy_stack.env_path }}"
+  register: deploy_app_runtime_env_raw
+
+- name: Validate essential application runtime variables
+  ansible.builtin.assert:
+    that:
+      - deploy_app_runtime_env_text is regex('(?m)^VICTUS_BACKEND_IMAGE=.+$')
+      - deploy_app_runtime_env_text is regex('(?m)^VICTUS_FRONTEND_IMAGE=.+$')
+      - deploy_app_runtime_env_text is regex('(?m)^VICTUS_AGENT_IMAGE=.+$')
+      - deploy_app_runtime_env_text is regex('(?m)^VICTUS_RAG_IMAGE=.+$')
+      - deploy_app_runtime_env_text is regex('(?m)^APP_PUBLIC_ORIGIN=https?://.+$')
+      - deploy_app_runtime_env_text is regex('(?m)^APP_POSTGRES_PASSWORD=.+$')
+      - deploy_app_runtime_env_text is regex('(?m)^APP_DATABASE_URL=postgresql://.+$')
+      - deploy_app_runtime_env_text is regex('(?m)^AGENT_POSTGRES_PASSWORD=.+$')
+      - deploy_app_runtime_env_text is regex('(?m)^AGENT_DATABASE_URL=postgresql\\+psycopg://.+$')
+      - deploy_app_runtime_env_text is not regex('(?m)^VICTUS_(BACKEND|FRONTEND|AGENT|RAG)_IMAGE=.*:latest$')
+    fail_msg: "{{ deploy_stack.env_path }} is missing an essential image, origin, or database configuration value."
+  vars:
+    deploy_app_runtime_env_text: "{{ deploy_app_runtime_env_raw.content | b64decode }}"
+
+- name: Copy application stack Compose files
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ deploy_stack.compose_files }}"
+
+- name: Link active environment file into application stack directory
+  ansible.builtin.file:
+    src: "{{ deploy_stack.env_path }}"
+    dest: "{{ deploy_stack.project_dir }}/.env"
+    state: link
+
+- name: Validate rendered application Compose configuration
+  ansible.builtin.command:
+    cmd: docker compose --env-file {{ deploy_stack.env_path }} {{ deploy_app_compose_args }} config
+  changed_when: false
+
+- name: Deploy application stack
+  ansible.builtin.command:
+    cmd: docker compose --env-file {{ deploy_stack.env_path }} {{ deploy_app_compose_args }} up -d --remove-orphans
+  register: deploy_app_up
+  changed_when: >-
+    'Started' in deploy_app_up.stdout or
+    'Recreated' in deploy_app_up.stdout or
+    'Creating' in deploy_app_up.stdout

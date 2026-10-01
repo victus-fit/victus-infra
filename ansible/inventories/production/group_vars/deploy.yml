@@ -126,7 +126,6 @@ deploy:
     compose_services:
       - llm-postgres
       - litellm
-      - langfuse
     directories:
       - { path: "{{ srv_apps_root }}/llm/litellm", mode: "0755" }
       - { path: "{{ srv_apps_root }}/llm/llm-postgres/init", mode: "0755" }
@@ -138,7 +137,6 @@ deploy:
         recreate_services:
           - llm-postgres
           - litellm
-          - langfuse
     required_files:
       - "{{ srv_secrets_root }}/runtime/llm.env"
     config_files:
@@ -167,3 +165,34 @@ deploy:
     directories:
       - { path: "{{ srv_apps_root }}/wiki", mode: "0755" }
       - { path: "{{ srv_data_root }}/wiki/postgres", owner: "70", group: "70", mode: "0700" }
+
+  app:
+    name: app
+    project_dir: "{{ srv_apps_root }}/app"
+    compose_files:
+      - src: "{{ playbook_dir }}/../../compose/projects/app/compose.yml"
+        dest: "{{ srv_apps_root }}/app/compose.yml"
+      - src: "{{ playbook_dir }}/../../compose/projects/app/compose.prod.yml"
+        dest: "{{ srv_apps_root }}/app/compose.prod.yml"
+    compose_cli_files:
+      - "{{ srv_apps_root }}/app/compose.yml"
+      - "{{ srv_apps_root }}/app/compose.prod.yml"
+    env_path: "{{ srv_secrets_root }}/runtime/app.env"
+    compose_services:
+      - app-postgres
+      - agent-postgres
+      - qdrant
+      - phoenix
+      - backend
+      - frontend
+      - agent-db-upgrade
+      - agent-langgraph-setup
+      - rag
+      - agent-chat
+      - agent-mcp
+    directories:
+      - { path: "{{ srv_apps_root }}/app", mode: "0755" }
+      - { path: "{{ srv_data_root }}/app/app-postgres", owner: "999", group: "999", mode: "0700" }
+      - { path: "{{ srv_data_root }}/app/agent-postgres", owner: "999", group: "999", mode: "0700" }
+      - { path: "{{ srv_data_root }}/app/qdrant", owner: "1000", group: "1000", mode: "0750" }
+      - { path: "{{ srv_data_root }}/app/phoenix", owner: "1000", group: "1000", mode: "0750" }

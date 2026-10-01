@@ -30,6 +30,7 @@ Committed examples:
 compose/env/core.env.example
 compose/env/observability.env.example
 compose/env/llm.env.example
+compose/env/app.env.example
 ```
 
 Local runtime env files:
@@ -38,6 +39,7 @@ Local runtime env files:
 compose/projects/core/.env
 compose/projects/observability/.env
 compose/projects/llm/.env
+compose/projects/app/.env
 ```
 
 Local `.env` files are not committed.
@@ -98,37 +100,50 @@ Local endpoints:
 
 ```text
 LiteLLM    http://127.0.0.1:4000
-Langfuse   http://127.0.0.1:3001
 Postgres   127.0.0.1:55432
 ```
 
-Production does not publish LiteLLM or Langfuse ports directly. Access goes
-through private NGINX on the Tailscale IP.
+Production does not publish LiteLLM ports directly. Access goes through
+private NGINX on the Tailscale IP.
 
 Private DNS endpoints:
 
 ```text
 LiteLLM    http://litellm.victus.io
-Langfuse   http://langfuse.victus.io
+Phoenix    http://phoenix.victus.io
 ```
 
 Local NGINX aliases:
 
 ```text
 LiteLLM    http://litellm.localhost:8080
-Langfuse   http://langfuse.localhost:8080
+Phoenix    http://phoenix.localhost:8080
 ```
 
-When using the NGINX aliases, set:
+## Run Application Stack
 
-```text
-LANGFUSE_NEXTAUTH_URL=http://langfuse.localhost:8080
+The application stack consumes released image references. Copy
+`compose/env/app.env.example` to `compose/projects/app/.env`, replace all
+`change-me` values and image tags, then run:
+
+```bash
+make app-up
 ```
 
-Production must use the private NGINX URL:
+Local ports bind to loopback by default. Production mounts the application's
+durable Postgres, Qdrant, and Phoenix data under `/srv/data/app`; only the
+frontend is exposed publicly through central NGINX at `app.victus.fit`.
+Phoenix is available only on the Tailscale private edge at
+`http://phoenix.victus.io`.
 
-```text
-LANGFUSE_NEXTAUTH_URL=http://langfuse.victus.io
+Check startup and service health with:
+
+```bash
+docker compose --env-file compose/projects/app/.env \
+  -f compose/projects/app/compose.yml \
+  -f compose/projects/app/compose.dev.yml ps
+curl --fail http://127.0.0.1:8000/health
+curl --fail http://127.0.0.1:8766/health
 ```
 
 Provider API keys are added through the LiteLLM UI and persisted in the

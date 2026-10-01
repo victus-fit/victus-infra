@@ -1,4 +1,4 @@
-.PHONY: compose-validate ansible-check core-up core-up-tailscale core-down core-logs llm-up llm-down llm-logs wiki-up wiki-down wiki-logs
+.PHONY: compose-validate ansible-check core-up core-up-tailscale core-down core-logs llm-up llm-down llm-logs wiki-up wiki-down wiki-logs app-up app-down app-logs
 
 ansible-check:
 	./tests/ansible/check.sh
@@ -36,3 +36,12 @@ wiki-down:
 
 wiki-logs:
 	docker compose --env-file compose/env/wiki.env.example -f compose/projects/wiki/compose.yml -f compose/projects/wiki/compose.dev.yml logs -f
+
+app-up:
+	./ops/scripts/local/up-app.sh
+
+app-down:
+	./ops/scripts/local/down-app.sh
+
+app-logs:
+	./ops/scripts/local/logs-app.sh

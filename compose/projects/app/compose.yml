@@ -1,0 +1,234 @@
+services:
+  app-postgres:
+    image: pgvector/pgvector:pg16-bookworm
+    container_name: victus-app-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${APP_POSTGRES_DB:-victus_app}
+      POSTGRES_USER: ${APP_POSTGRES_USER:-victus}
+      POSTGRES_PASSWORD: ${APP_POSTGRES_PASSWORD:?APP_POSTGRES_PASSWORD is required}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - app_backend
+
+  agent-postgres:
+    image: postgres:16
+    container_name: victus-agent-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${AGENT_POSTGRES_DB:-victus_agent}
+      POSTGRES_USER: ${AGENT_POSTGRES_USER:-victus}
+      POSTGRES_PASSWORD: ${AGENT_POSTGRES_PASSWORD:?AGENT_POSTGRES_PASSWORD is required}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - app_backend
+
+  qdrant:
+    image: qdrant/qdrant:v1.16.2
+    container_name: victus-qdrant
+    restart: unless-stopped
+    networks:
+      app_backend:
+        aliases:
+          - victus-qdrant
+
+  phoenix:
+    image: arizephoenix/phoenix:version-19.0.0
+    container_name: victus-phoenix
+    restart: unless-stopped
+    environment:
+      PHOENIX_WORKING_DIR: /mnt/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:6006/healthz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      - app_backend
+      - shared_backend
+
+  backend:
+    image: ${VICTUS_BACKEND_IMAGE:?VICTUS_BACKEND_IMAGE is required}
+    container_name: victus-backend
+    restart: unless-stopped
+    env_file:
+      - ${APP_RUNTIME_ENV_FILE:-.env}
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      DATABASE_URL: ${APP_DATABASE_URL:?APP_DATABASE_URL is required}
+      POSTGRES_HOST: app-postgres
+      POSTGRES_INTERNAL_PORT: "5432"
+      FRONTEND_ORIGIN: ${APP_PUBLIC_ORIGIN:?APP_PUBLIC_ORIGIN is required}
+      BACKEND_ORIGIN: ${APP_PUBLIC_ORIGIN:?APP_PUBLIC_ORIGIN is required}
+      CORS_ALLOW_ORIGINS: ${APP_PUBLIC_ORIGIN:?APP_PUBLIC_ORIGIN is required}
+      BETTER_AUTH_URL: ${APP_PUBLIC_ORIGIN:?APP_PUBLIC_ORIGIN is required}
+      GOOGLE_REDIRECT_URI: ${APP_PUBLIC_ORIGIN:?APP_PUBLIC_ORIGIN is required}/api/auth/google/callback
+      VICTUS_AGENT_BASE_URL: http://agent-chat:8766
+      VICTUS_RAG_API_URL: http://rag:8080
+      PHOENIX_TRACING_ENABLED: ${PHOENIX_TRACING_ENABLED:-true}
+      PHOENIX_COLLECTOR_ENDPOINT: http://phoenix:6006
+      PHOENIX_PROJECT_NAME: ${PHOENIX_PROJECT_NAME:-victus-production}
+    depends_on:
+      app-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8000/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - app_backend
+      - shared_backend
+
+  frontend:
+    image: ${VICTUS_FRONTEND_IMAGE:?VICTUS_FRONTEND_IMAGE is required}
+    container_name: victus-frontend
+    restart: unless-stopped
+    env_file:
+      - ${APP_RUNTIME_ENV_FILE:-.env}
+    environment:
+      VITE_API_BASE_URL: ${APP_PUBLIC_ORIGIN:?APP_PUBLIC_ORIGIN is required}
+      VITE_AUTH_BASE_URL: ${APP_PUBLIC_ORIGIN:?APP_PUBLIC_ORIGIN is required}
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5173').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - shared_backend
+
+  agent-db-upgrade:
+    image: ${VICTUS_AGENT_IMAGE:?VICTUS_AGENT_IMAGE is required}
+    container_name: victus-agent-db-upgrade
+    restart: "no"
+    env_file:
+      - ${APP_RUNTIME_ENV_FILE:-.env}
+    environment:
+      DATABASE_URL: ${AGENT_DATABASE_URL:?AGENT_DATABASE_URL is required}
+    command: ["uv", "run", "--no-sync", "python", "-c", "from adapters.cli import main; raise SystemExit(main())", "db-upgrade"]
+    depends_on:
+      agent-postgres:
+        condition: service_healthy
+    networks:
+      - app_backend
+
+  agent-langgraph-setup:
+    image: ${VICTUS_AGENT_IMAGE:?VICTUS_AGENT_IMAGE is required}
+    container_name: victus-agent-langgraph-setup
+    restart: "no"
+    env_file:
+      - ${APP_RUNTIME_ENV_FILE:-.env}
+    environment:
+      DATABASE_URL: ${AGENT_DATABASE_URL:?AGENT_DATABASE_URL is required}
+    command: ["uv", "run", "--no-sync", "python", "-m", "adapters.cli", "langgraph-storage-setup"]
+    depends_on:
+      agent-db-upgrade:
+        condition: service_completed_successfully
+    networks:
+      - app_backend
+
+  rag:
+    image: ${VICTUS_RAG_IMAGE:?VICTUS_RAG_IMAGE is required}
+    container_name: victus-rag
+    restart: unless-stopped
+    env_file:
+      - ${APP_RUNTIME_ENV_FILE:-.env}
+    command: ["uv", "run", "--no-sync", "python", "-c", "from src.cli import main; raise SystemExit(main())", "--config", "config/docker.yaml", "serve", "evidence", "--host", "0.0.0.0", "--port", "8080"]
+    depends_on:
+      qdrant:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - app_backend
+
+  agent-chat:
+    image: ${VICTUS_AGENT_IMAGE:?VICTUS_AGENT_IMAGE is required}
+    container_name: victus-agent-chat
+    restart: unless-stopped
+    env_file:
+      - ${APP_RUNTIME_ENV_FILE:-.env}
+    environment:
+      VICTUS_CHAT_HTTP_HOST: 0.0.0.0
+      VICTUS_CHAT_HTTP_PORT: "8766"
+      DATABASE_URL: ${AGENT_DATABASE_URL:?AGENT_DATABASE_URL is required}
+      BACKEND_API_URL: http://backend:8000/v1
+      VICTUS_RAG_API_URL: http://rag:8080
+      VICTUS_DEMO_STATE_API_URL: http://backend:8000
+      LITELLM_PROXY_API_BASE: http://litellm:4000
+      PHOENIX_TRACING_ENABLED: ${PHOENIX_TRACING_ENABLED:-true}
+      PHOENIX_COLLECTOR_ENDPOINT: http://phoenix:6006
+      PHOENIX_BASE_URL: http://phoenix:6006
+      PHOENIX_PROJECT_NAME: ${PHOENIX_PROJECT_NAME:-victus-production}
+    command: ["uv", "run", "--no-sync", "python", "-m", "adapters.http.app"]
+    depends_on:
+      agent-langgraph-setup:
+        condition: service_completed_successfully
+      rag:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8766/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - app_backend
+      - shared_backend
+
+  agent-mcp:
+    image: ${VICTUS_AGENT_IMAGE:?VICTUS_AGENT_IMAGE is required}
+    container_name: victus-agent-mcp
+    restart: unless-stopped
+    env_file:
+      - ${APP_RUNTIME_ENV_FILE:-.env}
+    environment:
+      VICTUS_MCP_HTTP_HOST: 0.0.0.0
+      VICTUS_MCP_HTTP_PORT: "8765"
+      DATABASE_URL: ${AGENT_DATABASE_URL:?AGENT_DATABASE_URL is required}
+      BACKEND_API_URL: http://backend:8000/v1
+      VICTUS_RAG_API_URL: http://rag:8080
+      VICTUS_DEMO_STATE_API_URL: http://backend:8000
+      LITELLM_PROXY_API_BASE: http://litellm:4000
+      PHOENIX_TRACING_ENABLED: ${PHOENIX_TRACING_ENABLED:-true}
+      PHOENIX_COLLECTOR_ENDPOINT: http://phoenix:6006
+      PHOENIX_BASE_URL: http://phoenix:6006
+      PHOENIX_PROJECT_NAME: ${PHOENIX_PROJECT_NAME:-victus-production}
+    depends_on:
+      agent-langgraph-setup:
+        condition: service_completed_successfully
+      rag:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - app_backend
+
+networks:
+  app_backend:
+    driver: bridge
+  shared_backend:
+    name: infra_shared_backend
+    external: true

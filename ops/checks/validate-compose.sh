@@ -41,7 +41,11 @@ validate_stack() {
 	require_file "$compose_overlay"
 
 	log "$stack: docker compose config"
-	docker compose --env-file "$env_file" -f "$compose_base" -f "$compose_overlay" config >/dev/null
+	if [[ "$stack" == "app" ]]; then
+		APP_RUNTIME_ENV_FILE=/dev/null docker compose --env-file "$env_file" -f "$compose_base" -f "$compose_overlay" config >/dev/null
+	else
+		docker compose --env-file "$env_file" -f "$compose_base" -f "$compose_overlay" config >/dev/null
+	fi
 
 	log "$stack: compose rendered OK"
 }
@@ -142,6 +146,10 @@ validate_required_dirs() {
 		"$ROOT_DIR/compose/.tmp/observability/prometheus"
 		"$ROOT_DIR/compose/.tmp/llm/postgres/data"
 		"$ROOT_DIR/compose/.tmp/wiki/postgres"
+		"$ROOT_DIR/compose/.tmp/app/app-postgres"
+		"$ROOT_DIR/compose/.tmp/app/agent-postgres"
+		"$ROOT_DIR/compose/.tmp/app/qdrant"
+		"$ROOT_DIR/compose/.tmp/app/phoenix"
 	)
 
 	for dir in "${dirs[@]}"; do
@@ -157,6 +165,7 @@ validate_stack core
 validate_stack observability
 validate_stack llm
 validate_stack wiki
+validate_stack app
 validate_required_dirs
 validate_seaweed_s3_config
 validate_litellm_config_renderer

@@ -9,4 +9,4 @@ COMPOSE_OVERLAY="$ROOT_DIR/compose/projects/llm/compose.dev.yml"
 
 "$ROOT_DIR/ops/scripts/local/ensure-shared-network.sh"
 
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_BASE" -f "$COMPOSE_OVERLAY" up -d "$@"
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_BASE" -f "$COMPOSE_OVERLAY" up -d --remove-orphans "$@"
