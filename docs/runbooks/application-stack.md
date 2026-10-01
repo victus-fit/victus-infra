@@ -19,8 +19,9 @@ ghcr.io/victus-fit/victus-rag:v1.0.0
 ```
 
 - Set their immutable references, `APP_PUBLIC_ORIGIN`, database credentials and
-  application secrets in Infisical as the multiline `APP_RUNTIME_ENV` value at
-  `/Hetzner-Server/app`.
+  application secrets in Infisical as separate secrets under
+  `/Hetzner-Server/app`. The deploy workflow materializes those keys into the
+  runtime env file on the host.
 - Create DNS for `app.victus.fit` before the first deploy so the core HTTP-01
   certificate step can succeed.
 
@@ -52,7 +53,7 @@ with `/health` when verifying the backend directly.
 ## Roll back
 
 Set `VICTUS_BACKEND_IMAGE`, `VICTUS_FRONTEND_IMAGE`, `VICTUS_AGENT_IMAGE`, and
-`VICTUS_RAG_IMAGE` to the prior compatible image set in `APP_RUNTIME_ENV`, then
-rerun the workflow. Do not delete `/srv/data/app`. If a release changed either
-Postgres schema, restore the matching database backup before starting the older
-image set.
+`VICTUS_RAG_IMAGE` in `/Hetzner-Server/app` to the prior compatible image set,
+then rerun the workflow. Do not delete `/srv/data/app`. If a release changed
+either Postgres schema, restore the matching database backup before starting the
+older image set.

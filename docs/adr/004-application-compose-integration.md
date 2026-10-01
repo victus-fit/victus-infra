@@ -25,8 +25,10 @@ frontend at `app.victus.fit`.
 ## Consequences
 
 Image publication precedes infrastructure deployment and all four immutable
-image references must be staged in `APP_RUNTIME_ENV`. Application code remains
-in its component repositories. State rollback must restore the corresponding
-`/srv/data/app` directories; an image rollback alone does not reverse a schema
-migration. The legacy root-level Compose stack and this `app` stack use the
-same container names and must not run at the same time.
+image references must be staged as separate secrets under
+`/Hetzner-Server/app`. The deploy workflow materializes those app secrets into
+the runtime env file used by Compose. Application code remains in its component
+repositories. State rollback must restore the corresponding `/srv/data/app`
+directories; an image rollback alone does not reverse a schema migration. The
+legacy root-level Compose stack and this `app` stack use the same container
+names and must not run at the same time.

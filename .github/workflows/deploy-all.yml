@@ -134,7 +134,6 @@ jobs:
           LITELLM_SALT_KEY: ${{ env.LITELLM_SALT_KEY }}
           LITELLM_UI_PASSWORD: ${{ env.LITELLM_UI_PASSWORD }}
           LITELLM_DEPLOYMENTS_JSON: ${{ env.LITELLM_DEPLOYMENTS_JSON }}
-          APP_RUNTIME_ENV: ${{ env.APP_RUNTIME_ENV }}
         run: |
           set -euo pipefail
           
@@ -167,7 +166,40 @@ jobs:
           [[ -n "${LITELLM_SALT_KEY}" ]] || errors+=("Missing LITELLM_SALT_KEY")
           [[ -n "${LITELLM_UI_PASSWORD}" ]] || errors+=("Missing LITELLM_UI_PASSWORD")
           [[ -n "${LITELLM_DEPLOYMENTS_JSON}" ]] || errors+=("Missing LITELLM_DEPLOYMENTS_JSON")
-          [[ -n "${APP_RUNTIME_ENV}" ]] || errors+=("Missing APP_RUNTIME_ENV")
+
+          # Application image/runtime secrets are stored separately under
+          # /Hetzner-Server/app and materialized into one env file at deploy time.
+          required_app_secrets=(
+            VICTUS_BACKEND_IMAGE
+            VICTUS_FRONTEND_IMAGE
+            VICTUS_AGENT_IMAGE
+            VICTUS_RAG_IMAGE
+            APP_PUBLIC_ORIGIN
+            APP_POSTGRES_PASSWORD
+            APP_DATABASE_URL
+            AGENT_POSTGRES_PASSWORD
+            AGENT_DATABASE_URL
+            BETTER_AUTH_SECRET
+            SECRET_KEY
+            VICTUS_DEMO_JWT_PRIVATE_KEY_PEM_BASE64
+            VICTUS_DEMO_JWT_JWKS_JSON
+            VICTUS_DEMO_AGENT_API_TOKEN
+            VICTUS_DEMO_STATE_API_TOKEN
+            VICTUS_RAG_API_TOKEN
+          )
+          for secret_name in "${required_app_secrets[@]}"; do
+            [[ -n "${!secret_name:-}" ]] || errors+=("Missing ${secret_name}")
+          done
+          [[ "${VICTUS_BACKEND_IMAGE:-}" != *":latest" ]] || errors+=("VICTUS_BACKEND_IMAGE must not use latest")
+          [[ "${VICTUS_FRONTEND_IMAGE:-}" != *":latest" ]] || errors+=("VICTUS_FRONTEND_IMAGE must not use latest")
+          [[ "${VICTUS_AGENT_IMAGE:-}" != *":latest" ]] || errors+=("VICTUS_AGENT_IMAGE must not use latest")
+          [[ "${VICTUS_RAG_IMAGE:-}" != *":latest" ]] || errors+=("VICTUS_RAG_IMAGE must not use latest")
+          app_postgres_password="${APP_POSTGRES_PASSWORD:-}"
+          agent_postgres_password="${AGENT_POSTGRES_PASSWORD:-}"
+          app_secret_key="${SECRET_KEY:-}"
+          [[ "${#app_postgres_password}" -ge 16 ]] || errors+=("APP_POSTGRES_PASSWORD must be at least 16 characters")
+          [[ "${#agent_postgres_password}" -ge 16 ]] || errors+=("AGENT_POSTGRES_PASSWORD must be at least 16 characters")
+          [[ "${#app_secret_key}" -ge 32 ]] || errors+=("SECRET_KEY must be at least 32 characters")
 
           if [[ ${#errors[@]} -gt 0 ]]; then
             printf '%s\n' "${errors[@]}" >&2
@@ -275,7 +307,6 @@ jobs:
           LITELLM_SALT_KEY: ${{ env.LITELLM_SALT_KEY }}
           LITELLM_UI_PASSWORD: ${{ env.LITELLM_UI_PASSWORD }}
           LITELLM_DEPLOYMENTS_JSON: ${{ env.LITELLM_DEPLOYMENTS_JSON }}
-          APP_RUNTIME_ENV: ${{ env.APP_RUNTIME_ENV }}
         run: |
           set -euo pipefail
 
@@ -348,7 +379,70 @@ jobs:
           done
           chmod 600 /tmp/llm-runtime.env
 
-          printf '%s\n' "${APP_RUNTIME_ENV}" > /tmp/app-runtime.env
+          app_runtime_keys=(
+            VICTUS_BACKEND_IMAGE
+            VICTUS_FRONTEND_IMAGE
+            VICTUS_AGENT_IMAGE
+            VICTUS_RAG_IMAGE
+            APP_ENV
+            ENABLE_DEV_AUTH
+            APP_PUBLIC_ORIGIN
+            APP_POSTGRES_DB
+            APP_POSTGRES_USER
+            APP_POSTGRES_PASSWORD
+            APP_DATABASE_URL
+            AGENT_POSTGRES_DB
+            AGENT_POSTGRES_USER
+            AGENT_POSTGRES_PASSWORD
+            AGENT_DATABASE_URL
+            BACKEND_PORT
+            FRONTEND_PORT
+            FRONTEND_ORIGIN
+            BACKEND_ORIGIN
+            CORS_ALLOW_ORIGINS
+            BETTER_AUTH_URL
+            BETTER_AUTH_SECRET
+            SECRET_KEY
+            JWT_ALGORITHM
+            ACCESS_TOKEN_MINUTES
+            REFRESH_TOKEN_DAYS
+            COOKIE_SECURE
+            COOKIE_SAMESITE
+            GOOGLE_CLIENT_ID
+            GOOGLE_CLIENT_SECRET
+            VICTUS_AGENT_TIMEOUT_SECONDS
+            VICTUS_DEMO_JWT_PRIVATE_KEY_PEM_BASE64
+            VICTUS_DEMO_JWT_JWKS_JSON
+            VICTUS_DEMO_JWT_KID
+            VICTUS_DEMO_JWT_ISSUER
+            VICTUS_DEMO_JWT_TTL_SECONDS
+            VICTUS_DEMO_AGENT_API_TOKEN
+            VICTUS_DEMO_STATE_API_TOKEN
+            VICTUS_DEMO_SESSION_TTL_SECONDS
+            VICTUS_RAG_API_TOKEN
+            VICTUS_RAG_API_TIMEOUT_SECONDS
+            LITELLM_PROXY_API_BASE
+            LITELLM_PROXY_API_KEY
+            LITELLM_KEY
+            HF_TOKEN
+            OPENAI_API_KEY
+            PHOENIX_TRACING_ENABLED
+            PHOENIX_COLLECTOR_ENDPOINT
+            PHOENIX_BASE_URL
+            PHOENIX_PROJECT_NAME
+            OPENINFERENCE_HIDE_INPUTS
+            OPENINFERENCE_HIDE_OUTPUTS
+            OPENINFERENCE_HIDE_INPUT_MESSAGES
+            OPENINFERENCE_HIDE_OUTPUT_MESSAGES
+            LANGSMITH_TRACING
+          )
+          : > /tmp/app-runtime.env
+          for key in "${app_runtime_keys[@]}"; do
+            value="${!key:-}"
+            if [[ -n "$value" ]]; then
+              printf '%s=%s\n' "$key" "$value" >> /tmp/app-runtime.env
+            fi
+          done
           chmod 600 /tmp/app-runtime.env
 
       - name: Validate materialized runtime files
