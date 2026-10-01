@@ -8,7 +8,16 @@ status: active
 
 ## Deploy prerequisites
 
-- Publish compatible backend, frontend, agent, and RAG images.
+- Publish compatible backend, frontend, agent, and RAG images. For the V1.0.0
+  release line, the expected immutable references are:
+
+```text
+ghcr.io/victus-fit/victus-backend:v1.0.0
+ghcr.io/victus-fit/victus-frontend:v1.0.0
+ghcr.io/victus-fit/victus-agent:v1.0.0
+ghcr.io/victus-fit/victus-rag:v1.0.0
+```
+
 - Set their immutable references, `APP_PUBLIC_ORIGIN`, database credentials and
   application secrets in Infisical as the multiline `APP_RUNTIME_ENV` value at
   `/Hetzner-Server/app`.
@@ -27,12 +36,14 @@ docker compose --env-file /srv/secrets/runtime/app.env \
   -f /srv/apps/app/compose.yml -f /srv/apps/app/compose.prod.yml ps
 curl --fail --resolve app.victus.fit:443:127.0.0.1 https://app.victus.fit/health
 docker exec victus-agent-chat python -c "import urllib.request; urllib.request.urlopen('http://rag:8080/healthz').read()"
+docker exec victus-agent-mcp python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/health').read()"
 ```
 
-Inspect tracing through the Tailscale-only endpoint:
+Inspect private services through the Tailscale-only edge:
 
 ```bash
 curl --fail http://phoenix.victus.io/healthz
+curl --fail http://mcp.victus.io/health
 ```
 
 The public health URL is served by the frontend; use `docker exec victus-backend`

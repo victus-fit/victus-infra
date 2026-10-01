@@ -111,6 +111,7 @@ Private DNS endpoints:
 ```text
 LiteLLM    http://litellm.victus.io
 Phoenix    http://phoenix.victus.io
+MCP        http://mcp.victus.io
 ```
 
 Local NGINX aliases:
@@ -118,6 +119,7 @@ Local NGINX aliases:
 ```text
 LiteLLM    http://litellm.localhost:8080
 Phoenix    http://phoenix.localhost:8080
+MCP        http://mcp.localhost:8080
 ```
 
 ## Run Application Stack
@@ -133,8 +135,8 @@ make app-up
 Local ports bind to loopback by default. Production mounts the application's
 durable Postgres, Qdrant, and Phoenix data under `/srv/data/app`; only the
 frontend is exposed publicly through central NGINX at `app.victus.fit`.
-Phoenix is available only on the Tailscale private edge at
-`http://phoenix.victus.io`.
+Phoenix and MCP are available only on the Tailscale private edge at
+`http://phoenix.victus.io` and `http://mcp.victus.io`.
 
 Check startup and service health with:
 
@@ -144,6 +146,7 @@ docker compose --env-file compose/projects/app/.env \
   -f compose/projects/app/compose.dev.yml ps
 curl --fail http://127.0.0.1:8000/health
 curl --fail http://127.0.0.1:8766/health
+curl --fail http://127.0.0.1:8765/health
 ```
 
 Provider API keys are added through the LiteLLM UI and persisted in the

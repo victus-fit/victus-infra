@@ -76,6 +76,7 @@ services:
       GOOGLE_REDIRECT_URI: ${APP_PUBLIC_ORIGIN:?APP_PUBLIC_ORIGIN is required}/api/auth/google/callback
       VICTUS_AGENT_BASE_URL: http://agent-chat:8766
       VICTUS_RAG_API_URL: http://rag:8080
+      RAG_API_TOKEN: ${VICTUS_RAG_API_TOKEN:?VICTUS_RAG_API_TOKEN is required}
       PHOENIX_TRACING_ENABLED: ${PHOENIX_TRACING_ENABLED:-true}
       PHOENIX_COLLECTOR_ENDPOINT: http://phoenix:6006
       PHOENIX_PROJECT_NAME: ${PHOENIX_PROJECT_NAME:-victus-production}
@@ -147,6 +148,8 @@ services:
     restart: unless-stopped
     env_file:
       - ${APP_RUNTIME_ENV_FILE:-.env}
+    environment:
+      RAG_API_TOKEN: ${VICTUS_RAG_API_TOKEN:?VICTUS_RAG_API_TOKEN is required}
     command: ["uv", "run", "--no-sync", "python", "-c", "from src.cli import main; raise SystemExit(main())", "--config", "config/docker.yaml", "serve", "evidence", "--host", "0.0.0.0", "--port", "8080"]
     depends_on:
       qdrant:
@@ -225,6 +228,7 @@ services:
       start_period: 10s
     networks:
       - app_backend
+      - shared_backend
 
 networks:
   app_backend:

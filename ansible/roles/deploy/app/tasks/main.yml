@@ -51,6 +51,7 @@
       - deploy_app_runtime_env_text is regex('(?m)^APP_DATABASE_URL=postgresql://.+$')
       - deploy_app_runtime_env_text is regex('(?m)^AGENT_POSTGRES_PASSWORD=.+$')
       - deploy_app_runtime_env_text is regex('(?m)^AGENT_DATABASE_URL=postgresql\\+psycopg://.+$')
+      - deploy_app_runtime_env_text is regex('(?m)^VICTUS_RAG_API_TOKEN=.+$')
       - deploy_app_runtime_env_text is not regex('(?m)^VICTUS_(BACKEND|FRONTEND|AGENT|RAG)_IMAGE=.*:latest$')
     fail_msg: "{{ deploy_stack.env_path }} is missing an essential image, origin, or database configuration value."
   vars:

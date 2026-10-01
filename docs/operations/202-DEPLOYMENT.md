@@ -128,11 +128,12 @@ LLM service endpoints:
 ```text
 LiteLLM    http://litellm.victus.io
 Phoenix    http://phoenix.victus.io
+MCP        http://mcp.victus.io
 Postgres   internal Docker network only
 ```
 
 The `llm` deploy does not publish LiteLLM ports directly. Private NGINX binds
-to `TAILSCALE_IPV4` and proxies LiteLLM and Phoenix over
+to `TAILSCALE_IPV4` and proxies LiteLLM, Phoenix, and MCP over
 `infra_shared_backend`.
 
 Wiki.js is published through `nginx-public` and proxies to `wiki:3000` over
@@ -193,6 +194,12 @@ curl http://litellm.victus.io/v1/models \
 
 For request traces, connect through Tailscale and inspect
 `http://phoenix.victus.io`.
+
+Validate the private MCP edge after the app stack is healthy:
+
+```bash
+curl --fail http://mcp.victus.io/health
+```
 
 Manual inspection:
 

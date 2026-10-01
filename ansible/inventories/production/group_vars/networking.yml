@@ -79,6 +79,19 @@ networking:
       https:
         enabled: false
 
+    - name: victus-mcp
+      domains:
+        - mcp.victus.io
+      upstream: agent-mcp:8765
+      exposure: private
+      access_policy: private
+      preserve_host: true
+      http:
+        enabled: true
+        redirect_to_https: false
+      https:
+        enabled: false
+
     - name: wiki
       domains:
         - wiki.victus.fit
