@@ -107,7 +107,7 @@ networking:
 
     - name: victus-app
       domains:
-        - app.victus.fit
+        - victus.fit
       upstream: frontend:5173
       exposure: public
       access_policy: public

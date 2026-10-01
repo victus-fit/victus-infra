@@ -22,7 +22,7 @@ ghcr.io/victus-fit/victus-rag:v1.0.0
   application secrets in Infisical as separate secrets under
   `/Hetzner-Server/app`. The deploy workflow materializes those keys into the
   runtime env file on the host.
-- Create DNS for `app.victus.fit` before the first deploy so the core HTTP-01
+- Create DNS for `victus.fit` before the first deploy so the core HTTP-01
   certificate step can succeed.
 
 ## Deploy and verify
@@ -35,7 +35,7 @@ On the host:
 ```bash
 docker compose --env-file /srv/secrets/runtime/app.env \
   -f /srv/apps/app/compose.yml -f /srv/apps/app/compose.prod.yml ps
-curl --fail --resolve app.victus.fit:443:127.0.0.1 https://app.victus.fit/health
+curl --fail --resolve victus.fit:443:127.0.0.1 https://victus.fit/health
 docker exec victus-agent-chat python -c "import urllib.request; urllib.request.urlopen('http://rag:8080/healthz').read()"
 docker exec victus-agent-mcp python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/health').read()"
 ```

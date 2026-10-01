@@ -134,7 +134,7 @@ make app-up
 
 Local ports bind to loopback by default. Production mounts the application's
 durable Postgres, Qdrant, and Phoenix data under `/srv/data/app`; only the
-frontend is exposed publicly through central NGINX at `app.victus.fit`.
+frontend is exposed publicly through central NGINX at `victus.fit`.
 Phoenix and MCP are available only on the Tailscale private edge at
 `http://phoenix.victus.io` and `http://mcp.victus.io`.
 

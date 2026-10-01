@@ -20,7 +20,7 @@ reproduced by the production Ansible deployment, which only stages
 frontend, agent, and RAG images. It owns application Postgres, agent Postgres,
 Qdrant, and Phoenix persistence under `/srv/data/app`. The stack connects to
 `infra_shared_backend` for LiteLLM and core NGINX; NGINX publishes only the
-frontend at `app.victus.fit`.
+frontend at `victus.fit`.
 
 ## Consequences
 
