@@ -40,6 +40,10 @@ docker exec victus-agent-chat python -c "import urllib.request; urllib.request.u
 docker exec victus-agent-mcp python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/health').read()"
 ```
 
+The `agent-db-upgrade` and `agent-langgraph-setup` containers are one-shot setup
+jobs. They should complete successfully, but they are not expected to remain
+running after deploy.
+
 Inspect private services through the Tailscale-only edge:
 
 ```bash

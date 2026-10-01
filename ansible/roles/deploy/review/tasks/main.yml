@@ -27,19 +27,26 @@
     fail_msg: "Missing runtime file after deploy: {{ item.item }}"
   loop: "{{ deploy_review_required_files.results }}"
 
+- name: Derive expected running containers
+  ansible.builtin.set_fact:
+    deploy_review_expected_containers: "{{ deploy_review_expected_containers_raw | from_yaml }}"
+  vars:
+    deploy_review_expected_containers_raw: >-
+      {%- set containers = [] -%}
+      {%- for stack in deploy.values() -%}
+      {%- set stack_containers = stack.review_containers | default(stack.compose_services | default([])) -%}
+      {%- for container in stack_containers -%}
+      {%- if container not in containers -%}
+      {%- set _ = containers.append(container) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {%- endfor -%}
+      {{ containers }}
+
 - name: Check expected containers are running
   ansible.builtin.command:
     cmd: docker inspect -f {{ '{{.State.Running}}' }} {{ item }}
-  loop: >-
-    {{
-      deploy
-      | dict2items
-      | map(attribute='value.compose_services')
-      | select('defined')
-      | list
-      | flatten
-      | unique
-    }}
+  loop: "{{ deploy_review_expected_containers }}"
   register: deploy_review_container_states
   changed_when: false
   failed_when: false

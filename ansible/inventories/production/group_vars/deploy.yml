@@ -190,6 +190,16 @@ deploy:
       - rag
       - agent-chat
       - agent-mcp
+    review_containers:
+      - victus-app-postgres
+      - victus-agent-postgres
+      - victus-qdrant
+      - victus-phoenix
+      - victus-backend
+      - victus-frontend
+      - victus-rag
+      - victus-agent-chat
+      - victus-agent-mcp
     directories:
       - { path: "{{ srv_apps_root }}/app", mode: "0755" }
       - { path: "{{ srv_data_root }}/app/app-postgres", owner: "999", group: "999", mode: "0700" }
