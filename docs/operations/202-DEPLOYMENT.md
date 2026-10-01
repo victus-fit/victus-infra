@@ -214,6 +214,21 @@ gh run list --workflow=deploy-all.yml
 gh run view <run-id> --log
 ```
 
+## Apt Lock Handling
+
+The core deploy installs `certbot` through apt before requesting TLS
+certificates. If the VPS is running `apt-daily`, `apt-daily-upgrade`,
+`unattended-upgrades`, or another package operation, Ansible waits for apt/dpkg
+locks to clear before continuing.
+
+Do not remove apt lock files manually. If the workflow repeatedly fails while
+waiting for locks, inspect the host package jobs instead:
+
+```bash
+ssh carlos@<PROD_HOST> "sudo fuser -v /var/lib/apt/lists/lock /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock || true"
+ssh carlos@<PROD_HOST> "systemctl status apt-daily.service apt-daily-upgrade.service unattended-upgrades --no-pager"
+```
+
 ## Rollback Expectation
 
 Prefer redeploying a known-good git ref through the deployment workflow.

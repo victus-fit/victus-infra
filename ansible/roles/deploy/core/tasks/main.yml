@@ -37,6 +37,24 @@
         | list
       }}
 
+- name: Wait for apt locks before installing core TLS packages
+  ansible.builtin.shell: |
+    set -eu
+    apt_lock_paths="/var/lib/apt/lists/lock /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock"
+
+    if command -v fuser >/dev/null 2>&1 && fuser ${apt_lock_paths} >/dev/null 2>&1; then
+      echo "apt or dpkg is currently locked; waiting before installing certbot."
+      fuser -v ${apt_lock_paths} || true
+      exit 1
+    fi
+  args:
+    executable: /bin/bash
+  register: deploy_core_apt_lock_wait
+  changed_when: false
+  retries: 30
+  delay: 10
+  until: deploy_core_apt_lock_wait.rc == 0
+
 - name: Install certbot packages for core TLS
   ansible.builtin.apt:
     name:
@@ -44,7 +62,7 @@
     state: present
     update_cache: true
     cache_valid_time: 3600
-    lock_timeout: 300
+    lock_timeout: 60
 
 - name: Allow HTTP and HTTPS through UFW
   ansible.builtin.command: "ufw allow {{ item }}/tcp"
