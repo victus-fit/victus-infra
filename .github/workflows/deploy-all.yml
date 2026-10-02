@@ -397,6 +397,7 @@ jobs:
             AGENT_DATABASE_URL
             BACKEND_PORT
             FRONTEND_PORT
+            VITE_ALLOWED_HOSTS
             FRONTEND_ORIGIN
             BACKEND_ORIGIN
             CORS_ALLOW_ORIGINS

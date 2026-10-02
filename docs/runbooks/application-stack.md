@@ -18,8 +18,8 @@ ghcr.io/victus-fit/victus-agent:v1.0.0
 ghcr.io/victus-fit/victus-rag:v1.0.0
 ```
 
-- Set their immutable references, `APP_PUBLIC_ORIGIN`, database credentials and
-  application secrets in Infisical as separate secrets under
+- Set their immutable references, `APP_PUBLIC_ORIGIN`, `VITE_ALLOWED_HOSTS`,
+  database credentials and application secrets in Infisical as separate secrets under
   `/Hetzner-Server/app`. The deploy workflow materializes those keys into the
   runtime env file on the host.
 - Create DNS for `victus.fit` before the first deploy so the core HTTP-01
