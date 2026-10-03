@@ -12,5 +12,7 @@ services:
       - /srv/data/app/qdrant:/qdrant/storage
 
   phoenix:
+    ports:
+      - "${PHOENIX_BIND_IP:-127.0.0.1}:${PHOENIX_PORT:-6006}:6006"
     volumes:
       - /srv/data/app/phoenix:/mnt/data

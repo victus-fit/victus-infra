@@ -24,6 +24,11 @@ ghcr.io/victus-fit/victus-rag:v1.0.0
   runtime env file on the host.
 - Create DNS for `victus.fit` before the first deploy so the core HTTP-01
   certificate step can succeed.
+- Public `/api/` traffic is proxied by `nginx-public` to the internal backend;
+  do not publish backend or agent ports on the public interface.
+- To access Phoenix directly from Tailnet, set `PHOENIX_BIND_IP` to the
+  server's Tailscale IPv4 address (currently `100.103.126.103`). Its default
+  remains loopback to avoid public exposure.
 
 ## Deploy and verify
 

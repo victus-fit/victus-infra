@@ -109,6 +109,7 @@ networking:
       domains:
         - victus.fit
       upstream: frontend:5173
+      api_upstream: backend:8000
       exposure: public
       access_policy: public
       preserve_host: true
